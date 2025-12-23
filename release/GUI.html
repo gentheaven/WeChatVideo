@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+	<script src="webui.js"></script>
+
+    <title>微信视频下载</title>
+    <style>
+        body {
+            font-family: "Microsoft YaHei", sans-serif;
+            background: #f0f0f0;
+            padding: 20px;
+        }
+        .window {
+            background: #ece9d8;
+            border: 2px solid #666;
+            padding: 15px;
+            width: 800px;
+        }
+        .section {
+            margin-bottom: 15px;
+        }
+        .row {
+            display: flex;
+            align-items: center;
+            margin: 5px 0;
+        }
+        .column {
+            flex: 1;
+            padding: 10px;
+        }
+       
+        button {
+            padding: 3px 12px;
+            margin: 0 5px;
+            background: #e1e1e1;
+            border: 1px solid #666;
+            cursor: pointer;
+        }
+        button:hover {
+            background: #d0d0d0;
+        }
+        fieldset {
+            border: 1px solid #999;
+            margin: 10px 0;
+            padding: 10px;
+        }
+        legend {
+            font-weight: bold;
+            color: #444;
+        }
+        .footer {
+            margin-top: 15px;
+            border-top: 1px solid #999;
+            padding-top: 10px;
+            font-size: 0.9em;
+        }
+     
+		
+		  /* ListView 表格样式 */
+        .listview {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        
+        .listview th {
+            background-color: #ece9d8;
+            text-align: left;
+            padding: 12px;
+            border: 2px solid #ddd;
+        }
+        
+        .listview td {
+            padding: 10px 12px;
+            border: 2px solid #ddd;
+        }
+        
+        /* 交替行颜色 */
+        .listview tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        
+        /* 悬停效果 */
+        .listview tr:hover {
+            background-color: #f1f1f1;
+        }
+        
+        /* 按钮样式 */
+        .btn {
+            padding: 5px 10px;
+            margin: 0 3px;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        
+        .btn-down {
+            background-color: #4CAF50;
+            color: white;
+        }
+        
+        .btn-down:hover {
+            background-color: #45a049;
+        }
+		
+		.btn-down:disabled {
+            background: #b0b0b0;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .btn-copyurl {
+            background-color: #f44336;
+            color: white;
+        }
+        
+        .btn-copyurl:hover {
+            background-color: #d32f2f;
+        }
+        
+        /* 按钮容器 */
+        .action-buttons {
+            white-space: nowrap;
+        }
+		
+    </style>
+
+</head>
+
+<body onload="AutoTest()">
+    <div class="window">
+        <h3>微信视频下载</h3>
+		
+		 <div class="row">
+		 <button OnClick="open_help();" id="help">帮助</button>
+		 <button OnClick="common_run(100);" style="margin-left: 45px" id="close_app" disalbed=true>关闭程序</button>
+		 </div>
+
+        <div class="row">
+            <button OnClick="common_run(200);">清空列表</button>
+            <button OnClick="common_run(300);" style="margin-left: 20px">打开下载目录</button>
+        </div>
+		
+		<hr>
+		
+		 <table class="listview">
+        <thead>
+            <tr>
+                <th>视频标题</th>
+                <th>大小</th>
+                <th>Key</th>
+                <th>状态</th>
+                <th>操作</th>
+            </tr>
+        </thead>
+		
+       <tbody id="userTableBody">
+            <!-- 动态内容将通过JavaScript填充 -->
+        </tbody>
+
+    </table>
+
+
+    </div>
+	
+     <script>
+		let current_idx = 0;
+		//0: 正常状态； 1：正在下载视频
+		let state = 0;
+		const userTableBody = document.getElementById('userTableBody');
+		
+		/*
+		  <td>世界很美好，张家界很好看</td>
+                <td>2MB</td>
+                <td>123456789</td>
+                <td>未下载</td>
+                <td class="action-buttons">
+                    <button class="btn btn-down" onclick="common_run(1)">下载</button>
+                </td>
+		*/
+        
+        // 动态添加行示例
+        function addNewRow(idx, title, size, seed) {
+			const newRow = document.createElement('tr');
+  
+            newRow.innerHTML = `
+                <td>${title}</td>
+                <td>${size}MB</td>
+                <td>${seed}</td>
+                <td>未下载</td>
+                <td class="action-buttons">
+                    <button class="btn btn-down" onclick="common_run(${idx}, this)">下载</button>
+                </td>
+            `;
+			userTableBody.appendChild(newRow);
+        }
+		
+		/*
+		flag = 0 to 31, video ID for download
+		flag = 100: close_app， 关闭程序
+		flag = 200: clear all video items，清空列表
+		flag = 300: open download dir， 打开视频下载目录
+		*/
+		function common_run(flag, button) {
+			if(flag < 100) {
+				//download video
+				const currentRow = userTableBody.rows[flag - 1];
+				if(state === 1) {
+					alert("正在下载其它视频，请等待下载结束再点击下载");
+					return;
+				}
+				state = 1;
+				currentRow.cells[3].textContent = "下载中...";
+				button.disabled = true;
+			}
+			
+			 action_run(flag).then((response) => {
+				if(flag === 100) {
+					//close app
+				} else if(flag === 200) {
+					current_idx = 0;
+					userTableBody.innerHTML = '';
+				} else if(flag === 300) {
+					//do nothing
+				} else {
+					state = 0;
+					//download video
+					if(response === "failed") {
+						alert("下载视频失败");
+					} else {
+						//修改下载状态为：已下载
+						//alert("完成下载视频");
+						const currentRow = userTableBody.rows[flag - 1];
+						currentRow.cells[3].textContent = "已下载";
+					}
+				}
+		        
+		    });
+		}
+        
+		
+	    function AutoTest() {
+	       //fech data every 2s
+	       setInterval(fetch_data, 2000);
+      
+	       function fetch_data() {
+				if(current_idx > 32) {
+					return;
+				}
+							
+		       fetch_video_url(current_idx).then((response) => {
+			       //response = new_idx, title, size, seed
+			       split_ary = response.split(",");
+				
+				   idx = split_ary[0];
+				   if(current_idx == idx) 
+				       return;
+				
+				   title = split_ary[1];
+				   size =  split_ary[2];
+				   seed = split_ary[3];
+		           if(current_idx !== idx) {
+		               current_idx = idx;
+		        	   addNewRow(idx, title, size, seed);
+					   if(idx >= 32)
+							alert("视频多于32个，请清空列表");
+		           }
+		       }); 
+		   } //end function  
+	   }
+	
+	function open_help() {
+        // 使用 window.open() 方法打开指定网页
+        window.open('help.html', '_blank');
+    }
+		
+    </script>
+ 
+
+   
+</body>
+</html>

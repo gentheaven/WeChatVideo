@@ -1,0 +1,37 @@
+async finderGetCommentDetail(t) {
+      const feedResult = await this.post({
+        name: "FinderGetCommentDetail",
+        data: {
+          finderBasereq: {...this.finderBasereq,
+            exptFlag: 1,
+            requestId: Ve()
+          },
+          platformScene: 2,
+          ...t
+        }
+      });
+      var data_object = feedResult.data.object;
+      var media = data_object.objectDesc.media[0];
+      var fetch_body = {
+        duration: media.spec[0].durationMs,
+        title: data_object.objectDesc.description,
+        url: media.url + media.urlToken,
+        size: media.fileSize,
+        key: media.decodeKey,
+        id: data_object.id,
+        nonce_id: data_object.objectNonceId,
+        nickname: data_object.nickname,
+        createtime: data_object.createtime,
+        fileFormat: media.spec.map(o = >o.fileFormat)
+      };
+      fetch('https://www.httpbin.org/post', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(fetch_body)
+      }).then(response = >{
+        console.log(response.ok, response.body)
+      });
+      return feedResult;
+    }
